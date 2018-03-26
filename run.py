@@ -61,7 +61,7 @@ for step in range(100001):
     #print('embedding labels shape:', embedding_labels.shape)
     triplets = []
     selected = set()
-    alpha = 0.000001
+    alpha = 0.00001
     #different number of triplets might be selected for different mini-batches.
     num_of_triplets = 0
     #choose the triplets in each mini-batch, the embeddings are provided by the  calls
@@ -85,6 +85,9 @@ for step in range(100001):
                 n_id = neg_indices[rnd_idx]
                 triplets.append([batch_x[i], batch_x[j], batch_x[n_id]])
                 num_of_triplets += 1
+    if num_of_triplets == 0:
+        triplets.append([batch_x[pos_indices[np.random.randint(len(pos_indices))],batch_x[pos_indices[np.random.randint(len(pos_indices))]],\
+                                 batch_x[neg_indices[np.random.randint(len(neg_indices))]]]])
     np.random.shuffle(triplets)
     triplets_anchors = np.array([t[0] for t in triplets])
     triplets_pos = np.array([t[1] for t in triplets])
