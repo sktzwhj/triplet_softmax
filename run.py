@@ -53,7 +53,7 @@ if load: saver.restore(sess, './model')
 
 
 for step in range(100001):
-    batchsize = 2048
+    batchsize = 64
     batch_x, batch_y = mnist_softmax.train.next_batch(batchsize)
     embeddings = np.array(sess.run([siamese.o1], feed_dict={siamese.x1:batch_x})[0])
     embedding_labels = batch_y
