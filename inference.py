@@ -21,7 +21,7 @@ class siamese:
         self.loss = self.triplet_loss()
 
     def entropy_shannon(self, distribution):
-        return -tf.sum(tf.multiply(distribution, tf.log(distribution)))
+        return -tf.reduce_sum(tf.multiply(distribution, tf.log(distribution)))
 
     def network(self, x):
         weights = []
