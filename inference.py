@@ -47,7 +47,7 @@ class siamese:
         losses_no_margin = tf.subtract(eucd_p, eucd_n, 'losses_without_margin')
         losses = tf.add(losses_no_margin, C, name='losses')
         loss = tf.reduce_mean(tf.maximum(losses, 0.0), name='loss')
-        loss = tf.add(tf.add(loss, self.entropy_shannon(self.o1)), tf.add(self.entropy_shannon(self.o2), \
+        loss = tf.subtract(loss, tf.add(self.entropy_shannon(self.o1)), tf.add(self.entropy_shannon(self.o2), \
                                                                           self.entropy_shannon(self.o3)))
         return loss
 
