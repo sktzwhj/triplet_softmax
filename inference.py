@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import tensorflow.contrib.bayesflow.entropy as entr
+
 
 class siamese:
 
@@ -20,6 +20,8 @@ class siamese:
         self.y_ = tf.placeholder(tf.float32, [None])
         self.loss = self.triplet_loss()
 
+    def entropy_shannon(self, distribution):
+        return -tf.sum(tf.multiply(distribution, tf.log(distribution)))
 
     def network(self, x):
         weights = []
@@ -45,7 +47,8 @@ class siamese:
         losses_no_margin = tf.subtract(eucd_p, eucd_n, 'losses_without_margin')
         losses = tf.add(losses_no_margin, C, name='losses')
         loss = tf.reduce_mean(tf.maximum(losses, 0.0), name='loss')
-        loss = tf.add(tf.add(loss, entr.entropy_shannon(self.o1)), tf.add(entr.entropy_shannon(self.o2), entr.entropy_shannon(self.o3)))
+        loss = tf.add(tf.add(loss, self.entropy_shannon(self.o1)), tf.add(self.entropy_shannon(self.o2), \
+                                                                          self.entropy_shannon(self.o3)))
         return loss
 
 
