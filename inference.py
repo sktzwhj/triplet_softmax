@@ -1,5 +1,7 @@
 import tensorflow as tf
 import numpy as np
+import tensorflow.contrib.bayesflow.entropy as entr
+
 class siamese:
 
     # Create model
@@ -21,7 +23,7 @@ class siamese:
 
     def network(self, x):
         weights = []
-        fc1 = self.fc_layer(x, 64, "fc1")
+        fc1 = self.fc_layer(x, 256, "fc1")
         ac1 = tf.nn.relu(fc1)
         fc2 = self.fc_layer(ac1, 10, "fc2")
         ac2 = tf.nn.relu(fc2)
@@ -33,7 +35,7 @@ class siamese:
 
 
     def triplet_loss(self):
-        margin = 0.000001
+        margin = 0.00001
         #o1 is the anchor, o2 is the positive example and o3 is the negative example
         C = tf.constant(margin, name = "C")
         eucd_p = tf.pow(tf.subtract(self.o1, self.o2), 2, "dist_pos")
@@ -43,6 +45,7 @@ class siamese:
         losses_no_margin = tf.subtract(eucd_p, eucd_n, 'losses_without_margin')
         losses = tf.add(losses_no_margin, C, name='losses')
         loss = tf.reduce_mean(tf.maximum(losses, 0.0), name='loss')
+        loss = tf.add(tf.add(loss, entr.entropy_shannon(self.o1)), tf.add(entr.entropy_shannon(self.o2), entr.entropy_shannon(self.o3)))
         return loss
 
 

@@ -4,6 +4,7 @@ import gzip
 import numpy
 import collections
 
+
 def extract_labels(filename, num_images):
     print('Extracting', filename)
     with gzip.open(filename) as bytestream:
@@ -35,13 +36,16 @@ def get_transformed_label(transformed_data_file, batch_size):
 def softmax(z):
     return np.divide(np.exp(z), np.sum(np.exp(z)))
 
+
 CIFAR_DIR = '/data/wu061/cifar10/'
-#CIFAR_DIR = '/home/wu061/bracewell_data/cifar10/'
+
+
+# CIFAR_DIR = '/home/wu061/bracewell_data/cifar10/'
 
 
 def get_data_labels():
     transformed_dir = ''
-    high_cifar = True
+    high_cifar = False
     if high_cifar:
         transformed_dir = 'highest_accuracy_transformed/'
     else:
@@ -52,19 +56,49 @@ def get_data_labels():
     transformed_test_label = get_transformed_data(CIFAR_DIR + transformed_dir + 'labels_list_all_testing_data', 100)
     transformed_test_data = get_transformed_data(CIFAR_DIR + transformed_dir + 'logits_all_testing_data', 100)
 
-
     true_train_labels = get_transformed_data(CIFAR_DIR + transformed_dir + 'labels_list_all_training_data', 100)
-    if False:
+    if True:
         for i in range(50000):
             transformed_train_data[i] = softmax(transformed_train_data[i])
         for j in range(10000):
             transformed_test_data[j] = softmax(transformed_test_data[j])
-    return transformed_train_data,transformed_train_label,transformed_test_data,transformed_test_label,true_train_labels
+    return transformed_train_data, transformed_train_label, transformed_test_data, transformed_test_label, true_train_labels
 
 
-train_data, train_labels, test_data, test_labels, _ = get_data_labels()
-distance_rank = cPickle.load(open('./CIFAR_distance_matrix/different_label_index_order_CIFAR_91'))
-svm_boundary_order = cPickle.load(open('./confidence_rank_list/CIFAR_91_ranklist_svm_multicore'))
+def get_data_labels_hidden():
+    transformed_dir = ''
+    high_cifar = True
+
+    if high_cifar:
+        transformed_dir = 'highest_hidden_transformed/'
+    else:
+        transformed_dir = 'higher_hidden_transformed/'
+
+    label_dir = ''
+    if high_cifar:
+        label_dir = 'highest_accuracy_transformed/'
+    else:
+        label_dir = 'higher_accuracy_transformed/'
+
+
+    transformed_train_label = get_transformed_data(CIFAR_DIR + transformed_dir + 'hidden_label_all_training_data', 100)
+    transformed_train_data = get_transformed_data(CIFAR_DIR + transformed_dir + 'hidden_feature_training_data', 100)
+    transformed_test_label = get_transformed_data(CIFAR_DIR + transformed_dir + 'hidden_label_all_testing_data', 100)
+    transformed_test_data = get_transformed_data(CIFAR_DIR + transformed_dir + 'hidden_feature_all_testing_data', 100)
+
+    transformed_train_data = [e.flatten() for e in transformed_train_data]
+    transformed_test_data = [e.flatten() for e in transformed_test_data]
+
+    # ground truth train train_labels
+    true_train_labels = get_transformed_data(
+        CIFAR_DIR + 'highest_accuracy_transformed/' + 'labels_list_all_training_data', 100)
+
+    return transformed_train_data, transformed_train_label, transformed_test_data, transformed_test_label, true_train_labels
+
+
+# train_data, train_labels, test_data, test_labels, _ = get_data_labels()
+# distance_rank = cPickle.load(open('./CIFAR_distance_matrix/different_label_index_order_CIFAR_91'))
+# svm_boundary_order = cPickle.load(open('./confidence_rank_list/CIFAR_91_ranklist_svm_multicore'))
 from collections import defaultdict
 
 
@@ -77,7 +111,7 @@ class DataSet:
         self._epochs_completed = 0
         self._index_in_epoch = 0
 
-    #def next_batch(self, batch_size):
+    # def next_batch(self, batch_size):
     #    self._index = (self._index + batch_size)%(55000-batch_size-1)
     #    return np.array(self.train_x[self._index : self._index + batch_size]), np.array(self.train_y[self._index : self._index + batch_size])
 
@@ -88,7 +122,7 @@ class DataSet:
             # Finished epoch
             self._epochs_completed += 1
 
-            #print self._num_examples
+            # print self._num_examples
             # Shuffle the data
 
             perm = numpy.arange(self._num_examples)
@@ -112,7 +146,7 @@ class DataSet:
             # Finished epoch
             self._epochs_completed += 1
 
-            #print self._num_examples
+            # print self._num_examples
             # Shuffle the data
 
             perm = numpy.arange(self._num_examples)
@@ -125,20 +159,17 @@ class DataSet:
             self._index_in_epoch = batch_size
             assert batch_size <= self._num_examples
         end = self._index_in_epoch
-        #print np.array(self.train_x[start:end]).shape, np.array(self.train_y[start:end]).shape
+        # print np.array(self.train_x[start:end]).shape, np.array(self.train_y[start:end]).shape
         return np.array(self.train_x[start:end]), np.array(self.train_y[start:end])
-
-
 
 
 class DataSets:
     def __init__(self):
         self._index = 0
-
         self.train_x, self.train_y, self.test_x, self.test_y, _ = get_data_labels()
-
         self.train = DataSet(self.train_x, self.train_y)
         self.test = DataSet(self.test_x, self.test_y)
+
 
 from sklearn.neighbors import KNeighborsClassifier
 
@@ -151,7 +182,7 @@ if __name__ == "__main__":
     train_labels = np.array(train_labels)
     test_data = np.array(test_data)
     for i in range(10000):
-        predicted_label = neigh.predict(test_data[i].reshape(1,-1))[0]
+        predicted_label = neigh.predict(test_data[i].reshape(1, -1))[0]
         if np.argmax(test_data[i]) == predicted_label:
             cnt += 1
     print cnt

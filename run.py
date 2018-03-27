@@ -53,7 +53,7 @@ if load: saver.restore(sess, './model')
 
 
 for step in range(100001):
-    batchsize = 64
+    batchsize = 512
     batch_x, batch_y = mnist_softmax.train.next_batch(batchsize)
     embeddings = np.array(sess.run([siamese.o1], feed_dict={siamese.x1:batch_x})[0])
     embedding_labels = batch_y
@@ -86,8 +86,8 @@ for step in range(100001):
                 triplets.append([batch_x[i], batch_x[j], batch_x[n_id]])
                 num_of_triplets += 1
     if num_of_triplets == 0:
-        triplets.append([batch_x[pos_indices[np.random.randint(len(pos_indices))],batch_x[pos_indices[np.random.randint(len(pos_indices))]],\
-                                 batch_x[neg_indices[np.random.randint(len(neg_indices))]]]])
+        triplets.append([batch_x[pos_indices[np.random.randint(len(pos_indices))]],batch_x[pos_indices[np.random.randint(len(pos_indices))]], \
+                                 batch_x[neg_indices[np.random.randint(len(neg_indices))]]])
     np.random.shuffle(triplets)
     triplets_anchors = np.array([t[0] for t in triplets])
     triplets_pos = np.array([t[1] for t in triplets])
@@ -109,7 +109,7 @@ for step in range(100001):
     if step % 10 == 0:
         print ('step %d: loss %.12f' % (step, loss_v))
 
-    if step % 10 == 0 and step > 0:
+    if step % 50 == 0 and step > 0:
         saver.save(sess, './model')
         embed = siamese.o1.eval({siamese.x1: mnist_softmax.train_x})
         embed_test = siamese.o1.eval({siamese.x1: mnist_softmax.test_x})
