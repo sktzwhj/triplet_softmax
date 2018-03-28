@@ -111,26 +111,15 @@ class DataSet:
         self._epochs_completed = 0
         self._index_in_epoch = 0
 
-    # def next_batch(self, batch_size):
-    #    self._index = (self._index + batch_size)%(55000-batch_size-1)
-    #    return np.array(self.train_x[self._index : self._index + batch_size]), np.array(self.train_y[self._index : self._index + batch_size])
-
     def next_batch_triplet_loss(self, batch_size):
         start = self._index_in_epoch
         self._index_in_epoch += batch_size
         if self._index_in_epoch > self._num_examples:
-            # Finished epoch
             self._epochs_completed += 1
-
-            # print self._num_examples
-            # Shuffle the data
-
             perm = numpy.arange(self._num_examples)
             numpy.random.shuffle(perm)
             self.train_x = self.train_x[perm]
             self.train_y = self.train_y[perm]
-
-            # Start next epoch
             start = 0
             self._index_in_epoch = batch_size
             assert batch_size <= self._num_examples
@@ -145,15 +134,10 @@ class DataSet:
         if self._index_in_epoch > self._num_examples:
             # Finished epoch
             self._epochs_completed += 1
-
-            # print self._num_examples
-            # Shuffle the data
-
             perm = numpy.arange(self._num_examples)
             numpy.random.shuffle(perm)
             self.train_x = self.train_x[perm]
             self.train_y = self.train_y[perm]
-
             # Start next epoch
             start = 0
             self._index_in_epoch = batch_size

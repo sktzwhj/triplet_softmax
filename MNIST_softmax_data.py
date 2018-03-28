@@ -4,6 +4,7 @@ import gzip
 import numpy
 import collections
 
+
 def extract_labels(filename, num_images):
     print('Extracting', filename)
     with gzip.open(filename) as bytestream:
@@ -35,6 +36,7 @@ def get_transformed_label(transformed_data_file, batch_size):
 def softmax(z):
     return np.divide(np.exp(z), np.sum(np.exp(z)))
 
+
 def get_data_labels_mnist_hidden():
     train_labels_filename = './MNIST_data/train-labels-idx1-ubyte.gz'
     test_labels_filename = './MNIST_data/t10k-labels-idx1-ubyte.gz'
@@ -51,7 +53,8 @@ def get_data_labels_mnist_hidden():
 
     return transformed_train_data, transformed_train_label, transformed_test_data, transformed_test_label, true_labels, model_test_label
 
-def get_data_labels(N = 55000):
+
+def get_data_labels(N=60000):
     train_labels_filename = './MNIST_data/train-labels-idx1-ubyte.gz'
     test_labels_filename = './MNIST_data/t10k-labels-idx1-ubyte.gz'
     transformed_train_label = get_transformed_label(MNIST_DIR + 'drift_full/logits_all_training_data', 50)
@@ -59,23 +62,25 @@ def get_data_labels(N = 55000):
     transformed_test_data = get_transformed_data(MNIST_DIR + 'drift_full/logits_all_testing_data', 50)
     transformed_test_label = extract_labels(test_labels_filename, 10000)
     true_labels = extract_labels(train_labels_filename, 60000)
-    if False:
+    if True:
         for i in range(60000):
             transformed_train_data[i] = softmax(transformed_train_data[i])
         for j in range(10000):
             transformed_test_data[j] = softmax(transformed_test_data[j])
-    return transformed_train_data[:N], transformed_train_label[:N], transformed_test_data, transformed_test_label, true_labels
+    return transformed_train_data[:N], transformed_train_label[
+                                       :N], transformed_test_data, transformed_test_label, true_labels
+
 
 def ambiguous_pair_mix():
     distance_rank = cPickle.load(open('./MNIST_distance_matrix/top6000_distance_rank'))
     svm_boundary_order = cPickle.load(open('./confidence_rank_list/MNIST_ranklist_svm_after_softmax'))
-    train_data, train_labels, test_data, test_labels, _ = get_data_labels(N = 60000)
+    train_data, train_labels, test_data, test_labels, _ = get_data_labels(N=60000)
     train_data_reorder = []
     train_labels_reorder = []
     train_data_set = set()
 
-    #index = svm_boundary_order[0]
-    #train_data_set.add(index)
+    # index = svm_boundary_order[0]
+    # train_data_set.add(index)
     for index in svm_boundary_order:
         for i in range(len(distance_rank[index])):
             if i not in train_data_set:
@@ -84,8 +89,8 @@ def ambiguous_pair_mix():
                 train_data_set.add(i)
 
     while False:
-        if len(train_labels_reorder)%10 == 0:
-            print len(train_labels_reorder),100
+        if len(train_labels_reorder) % 10 == 0:
+            print len(train_labels_reorder), 100
         if len(train_labels_reorder) > 128 and len(train_labels_reorder) > 128:
             break
         for i in distance_rank[index]:
@@ -107,12 +112,12 @@ class DataSet:
         self._epochs_completed = 0
         self._index_in_epoch = 0
 
-    #def next_batch(self, batch_size):
+    # def next_batch(self, batch_size):
     #    self._index = (self._index + batch_size)%(55000-batch_size-1)
     #    return np.array(self.train_x[self._index : self._index + batch_size]), np.array(self.train_y[self._index : self._index + batch_size])
 
 
-    def next_batch(self, batch_size, ambuguity = False):
+    def next_batch(self, batch_size, ambuguity=False):
         """Return the next `batch_size` examples from this data set."""
 
         start = self._index_in_epoch
@@ -135,8 +140,6 @@ class DataSet:
         return np.array(self.train_x[start:end]), np.array(self.train_y[start:end])
 
 
-
-
 class DataSets:
     def __init__(self, ambiguity=False):
         self._index = 0
@@ -147,23 +150,24 @@ class DataSets:
         self.train = DataSet(self.train_x, self.train_y)
         self.test = DataSet(self.test_x, self.test_y)
 
+
 from sklearn.neighbors import KNeighborsClassifier
-MNIST_DIR = '/home/wu061/codes/models/tutorials/image/mnist/'
+
 MNIST_DIR = '/data/wu061/mnist/'
 if __name__ == "__main__":
     train_data, train_labels, test_data, test_labels, true_train_labels = get_data_labels()
-    from pylmnn.lmnn import LargeMarginNearestNeighbor as LMNN
-    #neigh = KNeighborsClassifier(n_neighbors=1)
-    clf = LMNN(n_neighbors=1, max_iter=10, n_features_out=10)
+    # from pylmnn.lmnn import LargeMarginNearestNeighbor as LMNN
+    neigh = KNeighborsClassifier(n_neighbors=1)
+    # clf = LMNN(n_neighbors=1, max_iter=10, n_features_out=10)
 
-    clf.fit(train_data, train_labels)
+    neigh.fit(train_data, train_labels)
     cnt = 0
     train_data = np.array(train_data)
     train_labels = np.array(train_labels)
     test_data = np.array(test_data)
     for i in range(10000):
-        predicted_label = clf.predict(test_data[i].reshape(1,-1))[0]
+        predicted_label = neigh.predict(test_data[i].reshape(1, -1))[0]
         if test_labels[i] == predicted_label:
-            #print train_labels[i], predicted_label
+            # print train_labels[i], predicted_label
             cnt += 1
     print cnt

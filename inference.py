@@ -3,13 +3,13 @@ import numpy as np
 
 
 class siamese:
-
     # Create model
     def __init__(self):
-
         self.x1 = tf.placeholder(tf.float32, [None, 10])
         self.x2 = tf.placeholder(tf.float32, [None, 10])
         self.x3 = tf.placeholder(tf.float32, [None, 10])
+        self.triplet_num = tf.placeholder(tf.float32, [None, 1])
+
         with tf.variable_scope("siamese") as scope:
             self.o1 = self.network(self.x1)
             scope.reuse_variables()
@@ -21,7 +21,7 @@ class siamese:
         self.loss = self.triplet_loss()
 
     def entropy_shannon(self, distribution):
-        return -tf.reduce_sum(tf.multiply(distribution, tf.log(distribution)))
+        return -tf.multiply(1.0 / self.triplet_num, tf.tensordot(distribution, tf.log(distribution), 2))
 
     def network(self, x):
         weights = []
@@ -32,66 +32,34 @@ class siamese:
         fc3 = self.fc_layer(ac2, 256, "fc3")
         ac3 = tf.nn.relu(fc3)
         fc4 = self.fc_layer(ac3, 7, "fc4")
-        #add a softmax to make it normalized
+        # add a softmax to make it normalized
         return fc2
 
-
     def triplet_loss(self):
-        margin = 0.00001
-        #o1 is the anchor, o2 is the positive example and o3 is the negative example
-        C = tf.constant(margin, name = "C")
+        lambda_penalty = tf.get_variable('lambda_penalty', [1, 1], dtype=tf.float32,
+                                         initializer=tf.random_uniform_initializer)
+        margin = 0.0000001
+        # o1 is the anchor, o2 is the positive example and o3 is the negative example
+        C = tf.constant(margin, name="C")
         eucd_p = tf.pow(tf.subtract(self.o1, self.o2), 2, "dist_pos")
         eucd_p = tf.reduce_sum(eucd_p, 1)
         eucd_n = tf.pow(tf.subtract(self.o1, self.o3), 2, 'dist_neg')
         eucd_n = tf.reduce_sum(eucd_n, 1)
         losses_no_margin = tf.subtract(eucd_p, eucd_n, 'losses_without_margin')
         losses = tf.add(losses_no_margin, C, name='losses')
-        loss = tf.reduce_mean(tf.maximum(losses, 0.0), name='loss')
-        loss = tf.subtract(loss, tf.add(self.entropy_shannon(self.o1)), tf.add(self.entropy_shannon(self.o2), \
-                                                                          self.entropy_shannon(self.o3)))
+        loss = tf.reduce_mean(tf.add(losses, tf.reduce_mean(
+            tf.multiply(0.000000001, tf.add(self.entropy_shannon(self.o1), tf.add(self.entropy_shannon(self.o2), \
+                                                                                  self.entropy_shannon(self.o3)))))))
+        # loss = tf.reduce_mean(tf.maximum(losses, 0.0), name='loss')
+
         return loss
-
-
 
     def fc_layer(self, bottom, n_weight, name):
         assert len(bottom.get_shape()) == 2
         n_prev_weight = bottom.get_shape()[1]
         initer = tf.truncated_normal_initializer(stddev=0.01)
-        W = tf.get_variable(name+'W', dtype=tf.float32, shape=[n_prev_weight, n_weight], initializer=initer)
-        b = tf.get_variable(name+'b', dtype=tf.float32, initializer=tf.constant(0.01, shape=[n_weight], dtype=tf.float32))
+        W = tf.get_variable(name + 'W', dtype=tf.float32, shape=[n_prev_weight, n_weight], initializer=initer)
+        b = tf.get_variable(name + 'b', dtype=tf.float32,
+                            initializer=tf.constant(0.01, shape=[n_weight], dtype=tf.float32))
         fc = tf.nn.bias_add(tf.matmul(bottom, W), b)
         return fc
-
-    def loss_with_spring(self):
-        margin = self.alpha
-        labels_t = self.y_
-        labels_f = tf.subtract(1.0, self.y_, name="1-yi")          # labels_ = !labels;
-        eucd2 = tf.pow(tf.subtract(self.o1, self.o2), 2)
-        eucd2 = tf.reduce_sum(eucd2, 1)
-        eucd = tf.sqrt(eucd2+1e-6, name="eucd")
-        C = tf.constant(margin, name="C")
-        # yi*||CNN(p1i)-CNN(p2i)||^2 + (1-yi)*max(0, C-||CNN(p1i)-CNN(p2i)||^2)
-        pos = tf.multiply(labels_t, eucd2, name="yi_x_eucd2")
-        # neg = tf.multiply(labels_f, tf.subtract(0.0,eucd2), name="yi_x_eucd2")
-        # neg = tf.multiply(labels_f, tf.maximum(0.0, tf.subtract(C,eucd2)), name="Nyi_x_C-eucd_xx_2")
-        neg = tf.multiply(labels_f, tf.pow(tf.maximum(tf.subtract(C, eucd), 0), 2), name="Nyi_x_C-eucd_xx_2")
-        losses = tf.add(pos, neg, name="losses")
-        loss = tf.reduce_mean(losses, name="loss")
-        return loss
-
-
-
-
-    def loss_with_step(self):
-        margin = 5.0
-        labels_t = self.y_
-        labels_f = tf.subtract(1.0, self.y_, name="1-yi")          # labels_ = !labels;
-        eucd2 = tf.pow(tf.subtract(self.o1, self.o2), 2)
-        eucd2 = tf.reduce_sum(eucd2, 1)
-        eucd = tf.sqrt(eucd2+1e-6, name="eucd")
-        C = tf.constant(margin, name="C")
-        pos = tf.multiply(labels_t, eucd, name="y_x_eucd")
-        neg = tf.multiply(labels_f, tf.maximum(0.0, tf.subtract(C, eucd)), name="Ny_C-eucd")
-        losses = tf.add(pos, neg, name="losses")
-        loss = tf.reduce_mean(losses, name="loss")
-        return loss
